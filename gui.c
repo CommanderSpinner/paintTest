@@ -28,6 +28,7 @@ void createApp(int argc, char** argv){
     // Set the default window size
     gtk_window_set_default_size(GTK_WINDOW(window), 400, 300);
 
+    // -------------------- looki looki
     // Connect the draw signal of the drawing area to the callback function
     g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(on_draw), NULL);
 
