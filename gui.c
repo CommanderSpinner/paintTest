@@ -7,12 +7,14 @@ GtkWidget *drawing_area;
 int height = 600;
 int width = 800;
 gboolean is_drawing = FALSE;  // Track whether the mouse button is being held down
+gboolean is_new_stroke = TRUE;  // Track if this is a new stroke
 
 // Store the current path the user is drawing
 static GList *drawn_lines = NULL; // To store the lines as the user draws
 
 typedef struct {
     double x, y;
+    gboolean is_new_stroke; // Marker to indicate the start of a new stroke
 } Point;
 
 // Handle window destroy event
@@ -22,7 +24,7 @@ static void on_window_destroy(GtkWidget *widget, gpointer data) {
 
 // Draw the lines on the drawing area
 static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-    cairo_set_source_rgb(cr, 0, 0, 0); // Red color
+    cairo_set_source_rgb(cr, 1, 0, 0); // Red color
 
     if (drawn_lines != NULL) {
         GList *current_line = drawn_lines;
@@ -32,11 +34,10 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
         while (current_line != NULL) {
             Point *point = (Point *)current_line->data;
 
-            // Draw line between successive points
-            if (current_line == drawn_lines) {
-                cairo_move_to(cr, point->x, point->y); // Start from the first point
+            if (point->is_new_stroke) {
+                cairo_move_to(cr, point->x, point->y); // Start from the new stroke point
             } else {
-                cairo_line_to(cr, point->x, point->y); // Draw to the next point
+                cairo_line_to(cr, point->x, point->y); // Draw line between successive points
             }
 
             current_line = current_line->next;
@@ -51,11 +52,13 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpointer data) {
     if (event->button == GDK_BUTTON_PRIMARY) { // Left mouse button
         is_drawing = TRUE;  // Set drawing flag to TRUE when the button is pressed
+        is_new_stroke = TRUE;  // Mark the start of a new stroke
 
         // Add the point to the drawing list
         Point *new_point = g_new(Point, 1);
         new_point->x = event->x;
         new_point->y = event->y;
+        new_point->is_new_stroke = TRUE;  // This is a new stroke
         drawn_lines = g_list_append(drawn_lines, new_point);
 
         // Redraw the area
@@ -79,6 +82,7 @@ static gboolean on_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpoin
         Point *new_point = g_new(Point, 1);
         new_point->x = event->x;
         new_point->y = event->y;
+        new_point->is_new_stroke = FALSE;  // This point is part of the current stroke
         drawn_lines = g_list_append(drawn_lines, new_point);
 
         // Redraw the area
@@ -136,58 +140,3 @@ void cleanUp() {
     // Free all the points stored in drawn_lines
     g_list_free_full(drawn_lines, g_free);
 }
-
-
-
-/*
-GtkWidget *window;
-GtkWidget *drawing_area;
-
-static void on_window_destroy(GtkWidget *widget, gpointer data) {
-    gtk_main_quit();
-}
-
-static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-    // Set the drawing color to red
-    cairo_set_source_rgb(cr, 1, 0, 0); // Red color
-
-    // Draw a rectangle
-    cairo_rectangle(cr, 10, 10, 100, 100);
-    cairo_fill(cr); // Fill the rectangle
-
-    return FALSE; // Returning FALSE means GTK will handle the default drawing
-}
-
-void createApp(int argc, char** argv){
-    // Initialize GTK
-    gtk_init(&argc, &argv);
-
-    // Create a new window
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-
-    // Set the title of the window
-    gtk_window_set_title(GTK_WINDOW(window), "Paint Test");
-
-    // Set the default window size
-    gtk_window_set_default_size(GTK_WINDOW(window), 400, 300);
-
-    // -------------------- looki looki
-    // Connect the draw signal of the drawing area to the callback function
-    g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(on_draw), NULL);
-
-    // Add the drawing area to the window
-    gtk_container_add(GTK_CONTAINER(window), drawing_area);
-
-    // Connect the signal to handle window closing
-    g_signal_connect(window, "destroy", G_CALLBACK(on_window_destroy), NULL);
-
-    // Show the window
-    gtk_widget_show(window);
-
-    // Start the GTK main loop
-    gtk_main();
-}
-
-void cleanUp(){
-
-}*/
